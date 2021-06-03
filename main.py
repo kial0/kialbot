@@ -293,5 +293,5 @@ async def abc(ctx, *, text):
         await ctx.send("**그딴거 업서 임마**")
 
 
-access_token = os.environ["BOT_TOKEN"]
+access_token = os.environ['BOT_TOKEN']
 client.run(access_token)
