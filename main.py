@@ -1,4 +1,3 @@
-# -- coding: utf-8 --
 from gtts import gTTS, lang
 import ffmpeg
 from io import BytesIO
