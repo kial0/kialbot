@@ -1,3 +1,4 @@
+import openpyxl
 from gtts import gTTS, lang
 import ffmpeg
 from io import BytesIO
@@ -9,6 +10,7 @@ from discord.ext import commands
 from discord.ext.commands import Bot
 from time import sleep
 from googletrans import Translator
+from discord.utils import get
 
 command_name = ("키알봇 ", "kialbot ", "캴봇 ", "캴 ", "칼봇 ", "키알 ", "kial ")
 client = commands.Bot(command_prefix=command_name)
@@ -29,15 +31,15 @@ def audio_len(path):
 @client.command(name="tts")
 async def tts(ctx, *, text):
     speech = gTTS(text=text, lang="ko", slow=False)
-    speech.save()
+    speech.save("tts.mp3")
     voicechannel = ctx.author.voice.channel
     vc = await voicechannel.connect()
-    vc.play(discord.FFmpegPCMAudio("tts.mp3"), after=lambda e: print("완료"))
+    vc.play(discord.FFmpegPCMAudio(executable="C:/Users/ilmar/PycharmProjects/kialbot/ffmpeg-4.4-full_build-shared/bin/ffmpeg.exe", source="tts.mp3"), after=lambda e: print("완료"))
     counter = 0
     cwd = os.getcwd()
     duration = audio_len(cwd + ("/tts.mp3"))
     while not counter >= duration:
-        await asyncio.cleep(1)
+        await asyncio.sleep(1)
         counter += 1
     await vc.disconnect()
 
@@ -51,13 +53,6 @@ async def laik(ctx, *, text):
     print(value.src)  # 변환할 언어
     print(value.dest)  # 변환될 언어
     await ctx.channel.send(value.text)  # 변환 결과
-
-
-@client.command(name="역할", pass_context=True)
-async def 역할(ctx, *, text):
-    if text.split()[0:1] == "만들기":
-        await client.create_role(a, reason=None)
-
 
 
 @client.command()
@@ -248,6 +243,13 @@ async def leave(ctx):
 	await client.voice_clients[0].disconnect()
 
 
+@client.command(name="역할", pass_context=True)
+async def _HumanRole(ctx, member: discord.Member=None):
+    member = member or ctx.message.author
+    await member.add_roles(get(ctx.guild.roles, name="테스트"))
+    await ctx.channel.send(str(member)+"에게 역할이 적용되었습니다.")
+
+
 @client.command(aliases=['도움말', '도움', '명령어', '사용설명서', '사용법', '설명서'], pass_context=True)
 async def abc(ctx, *, text):
     if text.split()[0] == '미니게임':
@@ -293,5 +295,78 @@ async def abc(ctx, *, text):
         await ctx.send("**그딴거 업서 임마**")
 
 
-access_token = os.environ['BOT_TOKEN']
-client.run(access_token)
+@client.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("**그딴 명령어 없어 임마!**")
+
+
+@client.event
+async def on_message(message):
+    if message.content.startswith(""):
+        file = openpyxl.load_workbook("레벨.xlsx")
+        sheet = file.active
+        i = 1
+        exp = [10, 30, 60, 100, 150, 210, 280, 360, 450, 550]
+        while True:
+            if sheet["A" + str(i)].value == str(message.author.id):
+                sheet["B" + str(i)].value = sheet["B" + str(i)].value + 1
+                if sheet["B" + str(i)].value >= exp[sheet["C" + str(i)].value]:
+                    sheet["C" + str(i)].value = sheet["C" + str(i)].value + 1
+                    await message.channel.send("lv up!\n현재 레벨 : " + str(sheet["C" + str(i)].value) + "\n경험치 : " + str(sheet["B" + str(i)].value))
+                file.save("레벨.xlsx")
+                break
+                await client.process_commands(message)
+                return
+
+            if sheet["A" + str(i)].value == None:
+                sheet["A" + str(i)].value = str(message.author.id)
+                sheet["B" + str(i)].value = 0
+                sheet["C" + str(i)].value = 1
+                file.save("레벨.xlsx")
+                break
+            i += 1
+            await client.process_commands(message)
+            return
+
+    if message.content.startswith("킬"):
+        user_id = message.content[2:]
+        file = openpyxl.load_workbook("킬.xlsx")
+        sheet = file.active
+        i = 1
+        if sheet["A" + str(i)].value == str(message.author.id):
+            while True:
+                if sheet["A" + str(i)].value == str(user_id):
+                    sheet["B" + str(i)].value = sheet["B" + str(i)].value + 1
+                    i = 1
+                    await message.channel.send(f"킬 {user_id}!")
+                    if sheet["A" + str(i)].value == str(message.author.id):
+                        sheet["B" + str(i)].value = sheet["B" + str(i)].value + -1
+                    file.save("레벨.xlsx")
+                    break
+                    await client.process_commands(message)
+                    return
+
+                if sheet["A" + str(i)].value == None:
+                    sheet["A" + str(i)].value = str(user_id)
+                    sheet["B" + str(i)].value = 0
+                    file.save("킬.xlsx")
+                    break
+                i += 1
+                await client.process_commands(message)
+                return
+
+        if sheet["A" + str(i)].value == None:
+            sheet["A" + str(i)].value = str(message.author.id)
+            sheet["B" + str(i)].value = 0
+            file.save("킬.xlsx")
+            await message.channel.send("킬 가입됨")
+        i += 1
+        await client.process_commands(message)
+        return
+
+
+    await client.process_commands(message)
+
+
+client.run("ODIyMzYyNDkxOTU0NzkwNDYw.YFRKwA.jWzsxtjf5rTf7lc_5mUU8gyYfL0")
